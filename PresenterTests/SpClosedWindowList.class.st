@@ -4,9 +4,9 @@ Class {
 	#instVars : [
 		'title',
 		'list',
-		'addButton',
+		'unhideButton',
 		'removeButton',
-		'addItemBlock',
+		'unhideItemBlock',
 		'okBlock',
 		'label',
 		'removeItemBlock'
@@ -27,7 +27,7 @@ SpClosedWindowList class >> exampleClosedWindowsList [
 	| presenter |
 	presenter := self new
 		             items: self selectors asOrderedCollection;
-		             addItemBlock: [ 1 ];
+		             unhideItemBlock: [ 1 ];
 		             openWithLayout: self layoutWithOrdering;
 		             yourself.
 
@@ -47,34 +47,19 @@ SpClosedWindowList class >> layoutWithOrdering [
 	^ SpBoxLayout newTopToBottom
 		  add: listLayout;
 		  add: (SpBoxLayout newLeftToRight
-				   addLast: #addButton expand: false;
+				   addLast: #unhideButton expand: false;
 				   addLast: #removeButton expand: false;
 				   yourself)
 		  expand: false;
 		  yourself
 ]
 
-{ #category : 'accessing' }
-SpClosedWindowList >> addButton [
-	^ addButton 
-]
-
-{ #category : 'api' }
-SpClosedWindowList >> addItemBlock: aBlock [
-	addItemBlock := aBlock.
-]
-
 { #category : 'initialization' }
 SpClosedWindowList >> connectPresenters [
 	super connectPresenters.
-	addButton action: [ 
+	unhideButton action: [ 
 		| newItem |
-		newItem := addItemBlock value.
-		newItem ifNotNil: [ 
-			self items add: newItem.
-			self 
-				refresh;
-				selectItem: newItem ] ].
+		newItem := unhideItemBlock cull: self selectedItem ].
 	removeButton 
 		action: [ removeItemBlock cull: self selectedItem ].
 ]
@@ -87,13 +72,19 @@ SpClosedWindowList >> display: aBlock [
 
 { #category : 'initialization' }
 SpClosedWindowList >> initialize [
+
 	super initialize.
 	title := 'Title'.
 	okBlock := [  ].
-	removeItemBlock := [ :item | 
-								item
-									ifNotNil: [ self items remove: item.
-													self refresh. ] ]
+	removeItemBlock := [ :item |
+	                   item ifNotNil: [
+		                   self items remove: item.
+		                   item closeBoxHit.
+		                   self refresh ] ].
+	unhideItemBlock := [ :item |
+	                   item ifNotNil: [ item visible: true ].
+	                   self items remove: item.
+	                   self refresh ]
 ]
 
 { #category : 'initialization' }
@@ -101,7 +92,9 @@ SpClosedWindowList >> initializeDialogWindow: aWindow [
 
 	aWindow addDefaultButton: 'Ok' do: [ :presenter | 
 		self performOkAction. 
-		presenter close ]
+		presenter close ].
+
+	
 ]
 
 { #category : 'initialization' }
@@ -109,13 +102,13 @@ SpClosedWindowList >> initializePresenters [
 
 	label := self newLabel.
 	list := self newList.
-	addButton := self newButton.
+	unhideButton := self newButton.
 	removeButton := self newButton.
-	addButton
+	unhideButton
 		addStyle: 'small';
 		addStyle: 'flat';
 		icon: (self iconNamed: #undo);
-		help: 'Add a new item to the list'.
+		help: 'Unhide an item from the list'.
 	removeButton
 		addStyle: 'small';
 		addStyle: 'flat';
@@ -190,7 +183,8 @@ SpClosedWindowList >> performOkAction [
 { #category : 'api' }
 SpClosedWindowList >> refresh [
 	self resetSelection.
-	self items: self items
+	self items: self items.
+	list selectIndex: 0
 ]
 
 { #category : 'accessing' }
@@ -200,8 +194,9 @@ SpClosedWindowList >> removeButton [
 
 { #category : 'api' }
 SpClosedWindowList >> removeItem: anObject [
+
 	self items remove: anObject.
-	list selection unselectAll
+	"self resetSelection "
 ]
 
 { #category : 'api' }
@@ -211,7 +206,7 @@ SpClosedWindowList >> removeItemBlock: aBlock [
 
 { #category : 'api' }
 SpClosedWindowList >> resetSelection [
-	self selectIndex: 0
+	list selectIndex: 0
 ]
 
 { #category : 'api' }
@@ -242,6 +237,16 @@ SpClosedWindowList >> title [
 { #category : 'accessing' }
 SpClosedWindowList >> title: aTitle [
 	title := aTitle 
+]
+
+{ #category : 'accessing' }
+SpClosedWindowList >> unhideButton [
+	^ unhideButton 
+]
+
+{ #category : 'api' }
+SpClosedWindowList >> unhideItemBlock: aBlock [
+	unhideItemBlock := aBlock.
 ]
 
 { #category : 'api' }
